@@ -24,10 +24,6 @@ class QwenAudioModel:
         "7B": "Qwen/Qwen2.5-Omni-7B",
     }
 
-    # Special token IDs that bracket audio feature tokens in the input sequence
-    AUDIO_START_TOKEN_ID = 151647
-    AUDIO_END_TOKEN_ID = 151648
-
     def __init__(self, device: str = "cuda", model_size: str = "3B"):
         if model_size not in self.MODEL_IDS:
             raise ValueError(f"Unknown model_size '{model_size}', choose from {list(self.MODEL_IDS)}")
@@ -35,6 +31,10 @@ class QwenAudioModel:
         self.device = device
         self.model_id = self.MODEL_IDS[model_size]
         self.processor = Qwen2_5OmniProcessor.from_pretrained(self.model_id)
+
+        # Special token IDs that bracket audio feature tokens in the input sequence
+        self.AUDIO_START_TOKEN_ID = self.processor.tokenizer.convert_tokens_to_ids(self.processor.audio_bos_token)
+        self.AUDIO_END_TOKEN_ID = self.processor.tokenizer.convert_tokens_to_ids(self.processor.audio_eos_token)
         self.model = Qwen2_5OmniThinkerForConditionalGeneration.from_pretrained(
             self.model_id,
             torch_dtype=torch.bfloat16,
@@ -53,8 +53,8 @@ class QwenAudioModel:
             {
                 "role": "user",
                 "content": [
-                    {"type": "audio", "audio_url": "x"},
                     {"type": "text", "text": text},
+                    {"type": "audio", "audio_url": "x"},
                 ],
             },
         ]

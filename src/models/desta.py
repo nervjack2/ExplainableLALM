@@ -20,9 +20,6 @@ class DeSTAAudioModel:
 
     MODEL_ID = "DeSTA-ntu/DeSTA2.5-Audio-Llama-3.1-8B"
 
-    AUDIO_PLACEHOLDER_TOKEN_ID = 128096
-    TRANSCRIPTION_PLACEHOLDER_TOKEN_ID = 128097
-
     SYSTEM_PROMPT = "Focus on the audio clips and instructions."
 
     def __init__(self, device: str = "cuda"):
@@ -32,13 +29,13 @@ class DeSTAAudioModel:
         self.model.to(self.device)
         self.model.eval()
 
+        audio_placeholder_token = "<|reserved_special_token_87|>"
+        transcription_placeholder_token = "<|reserved_special_token_88|>"
         processing_config = {
             "audio_prompt_size": self.model.config.prompt_size,
             "audio_locator": self.model.config.audio_locator,
-            "audio_placeholder_token": "<|reserved_special_token_87|>",
-            "transcription_placeholder_token": "<|reserved_special_token_88|>",
-            "audio_placeholder_token_id": self.AUDIO_PLACEHOLDER_TOKEN_ID,
-            "transcription_placeholder_token_id": self.TRANSCRIPTION_PLACEHOLDER_TOKEN_ID,
+            "audio_placeholder_token": audio_placeholder_token,
+            "transcription_placeholder_token": transcription_placeholder_token,
         }
         self.processor = Desta2_5Processor(
             text_tokenizer_id=self.model.config.llm_model_id,
@@ -46,6 +43,13 @@ class DeSTAAudioModel:
             processing_config=processing_config,
         )
         self.tokenizer = self.processor.tokenizer
+
+        # Derive placeholder token IDs from the tokenizer instead of hardcoding them,
+        # so they stay correct even if the underlying LLM's special tokens ever change.
+        self.AUDIO_PLACEHOLDER_TOKEN_ID = self.tokenizer.convert_tokens_to_ids(audio_placeholder_token)
+        self.TRANSCRIPTION_PLACEHOLDER_TOKEN_ID = self.tokenizer.convert_tokens_to_ids(transcription_placeholder_token)
+        processing_config["audio_placeholder_token_id"] = self.AUDIO_PLACEHOLDER_TOKEN_ID
+        processing_config["transcription_placeholder_token_id"] = self.TRANSCRIPTION_PLACEHOLDER_TOKEN_ID
         self.model.set_processing_config(processing_config)
 
     def format_prompt(self, audio: np.ndarray, transcription: str, text: str) -> str:
@@ -53,7 +57,7 @@ class DeSTAAudioModel:
             {"role": "system", "content": self.SYSTEM_PROMPT},
             {
                 "role": "user",
-                "content": f"<|AUDIO|>\n{text}",
+                "content": f"{text}\n<|AUDIO|>",
                 "audios": [{"audio": audio, "text": transcription}],
             },
         ]

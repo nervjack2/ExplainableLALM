@@ -66,9 +66,6 @@ class EmotionSAKURA(_BaseSakuraDataset):
     LABELS = ["disgust", "sad", "angry", "fear", "happy"]
     SUBJECT = "emotion"
 
-    # Keep backward-compatible alias
-    EMOTIONS = LABELS
-
 
 class AnimalSAKURA(_BaseSakuraDataset):
     HF_DATASET = "SLLM-multi-hop/AnimalQA"
