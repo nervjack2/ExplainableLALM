@@ -232,7 +232,7 @@ def method2_jaccard(
 
 def method2_jaccard_matrix(
     audio_acts, text_acts, layer_names, out_dir, k_values: list[int],
-    use_specificity: bool = False,
+    use_specificity: bool = False, label_name: str = "emotion",
 ) -> dict:
     """
     Compute the full (audio_label × text_label) Jaccard matrix for each k.
@@ -272,8 +272,8 @@ def method2_jaccard_matrix(
         ax.set_yticks(range(len(audio_labels)))
         ax.set_xticklabels(text_labels, rotation=45, ha="right", fontsize=9)
         ax.set_yticklabels(audio_labels, fontsize=9)
-        ax.set_xlabel("Text emotion", fontsize=9)
-        ax.set_ylabel("Audio emotion", fontsize=9)
+        ax.set_xlabel(f"Text {label_name}", fontsize=9)
+        ax.set_ylabel(f"Audio {label_name}", fontsize=9)
         ax.set_title(f"k = {k}", fontsize=10)
         plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         thresh = matrix.max() * 0.6
@@ -287,7 +287,7 @@ def method2_jaccard_matrix(
 
     fig.suptitle(
         f"Audio vs. Text — Jaccard matrix (ranked by {score_label})\n"
-        "rows = audio emotion, cols = text emotion", fontsize=10,
+        f"rows = audio {label_name}, cols = text {label_name}", fontsize=10,
     )
     plt.tight_layout()
     fname = f"jaccard_matrix{suffix}"
@@ -307,7 +307,7 @@ def method2_jaccard_matrix(
 
 def method3_jaccard_per_layer(
     audio_acts, text_acts, layer_names, out_dir, k: int = 20,
-    use_specificity: bool = False,
+    use_specificity: bool = False, label_name: str = "emotion",
 ) -> dict:
     """
     Fix k and draw one Jaccard matrix heatmap per layer.
@@ -357,8 +357,8 @@ def method3_jaccard_per_layer(
         ax.set_yticks(range(len(audio_labels)))
         ax.set_xticklabels(text_labels, rotation=45, ha="right", fontsize=8)
         ax.set_yticklabels(audio_labels, fontsize=8)
-        ax.set_xlabel("Text emotion", fontsize=8)
-        ax.set_ylabel("Audio emotion", fontsize=8)
+        ax.set_xlabel(f"Text {label_name}", fontsize=8)
+        ax.set_ylabel(f"Audio {label_name}", fontsize=8)
         ax.set_title(f"Layer {idx}", fontsize=9)
         plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         thresh = global_max * 0.6
@@ -372,7 +372,7 @@ def method3_jaccard_per_layer(
 
     fig.suptitle(
         f"Audio vs. Text — per-layer Jaccard matrix (k={k}, ranked by {score_label})\n"
-        "rows = audio emotion, cols = text emotion",
+        f"rows = audio {label_name}, cols = text {label_name}",
         fontsize=11,
     )
     plt.tight_layout()
@@ -405,9 +405,10 @@ def main(args: argparse.Namespace) -> None:
     method2_jaccard(audio_acts, text_acts, layer_names, args.out_dir, k_values,
                     use_specificity=args.use_specificity)
     method2_jaccard_matrix(audio_acts, text_acts, layer_names, args.out_dir, k_values,
-                           use_specificity=args.use_specificity)
+                           use_specificity=args.use_specificity, label_name=args.label_name)
     method3_jaccard_per_layer(audio_acts, text_acts, layer_names, args.out_dir,
-                              k=args.k_layer, use_specificity=args.use_specificity)
+                              k=args.k_layer, use_specificity=args.use_specificity,
+                              label_name=args.label_name)
 
 
 if __name__ == "__main__":
@@ -428,6 +429,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--use_specificity", action="store_true",
         help="Rank neurons by specificity score (value - mean of other labels) instead of raw activation value",
+    )
+    parser.add_argument(
+        "--label_name", default="emotion",
+        help="Name of the label dimension being compared, used in plot axis labels (default: emotion)",
     )
     args = parser.parse_args()
     main(args)
